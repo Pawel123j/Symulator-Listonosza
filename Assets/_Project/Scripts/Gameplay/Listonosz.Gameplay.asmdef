@@ -1,0 +1,19 @@
+{
+    "name": "Listonosz.Gameplay",
+    "rootNamespace": "Listonosz.Gameplay",
+    "references": [
+        "Listonosz.Core",
+        "Listonosz.Data",
+        "Listonosz.Grid",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

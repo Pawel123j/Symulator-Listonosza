@@ -1,0 +1,20 @@
+{
+    "name": "Listonosz.UI",
+    "rootNamespace": "Listonosz.UI",
+    "references": [
+        "Listonosz.Core",
+        "Listonosz.Data",
+        "Listonosz.Grid",
+        "Listonosz.Gameplay",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,17 @@
+{
+    "name": "Listonosz.Grid",
+    "rootNamespace": "Listonosz.Grid",
+    "references": [
+        "Listonosz.Core",
+        "Listonosz.Data"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

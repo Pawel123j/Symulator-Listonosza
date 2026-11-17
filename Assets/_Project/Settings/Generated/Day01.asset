@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df04816b213805947aef18ff28538059, type: 3}
+  m_Name: Day01
+  m_EditorClassIdentifier: Listonosz.Data::Listonosz.Data.DeliveryDatabaseSO
+  dayLabel: Dzien 1
+  deliveries:
+  - {fileID: 11400000, guid: e1f835b6b909f2348b5fd4a7a2a09de0, type: 2}
+  - {fileID: 11400000, guid: cf2a163dc1cc2e24e882bfd3a32f46f7, type: 2}
+  - {fileID: 11400000, guid: 27fdef71f21d1004e8116d008d749d28, type: 2}
+  - {fileID: 11400000, guid: ae131a489bca350448f2489fd2dc8cfe, type: 2}
+  - {fileID: 11400000, guid: 30a8ebbc1356bd44d8b572afaee972bd, type: 2}
+  - {fileID: 11400000, guid: 05b26f25b00464444847768c53028488, type: 2}
+  - {fileID: 11400000, guid: 446937205751b0847a291c0ae987d507, type: 2}

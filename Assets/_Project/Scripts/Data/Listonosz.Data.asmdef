@@ -1,0 +1,16 @@
+{
+    "name": "Listonosz.Data",
+    "rootNamespace": "Listonosz.Data",
+    "references": [
+        "Listonosz.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
