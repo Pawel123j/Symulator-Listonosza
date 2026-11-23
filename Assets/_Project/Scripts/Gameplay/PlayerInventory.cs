@@ -22,6 +22,8 @@ namespace Listonosz.Gameplay
         /// <summary>Liczba niesionych przesyłek.</summary>
         public int Count => _carried.Count;
 
+        internal void Clear() => _carried.Clear();
+
         /// <summary>Czy torba jest pełna (przy ustawionym limicie).</summary>
         public bool IsFull => maxItems > 0 && _carried.Count >= maxItems;
 

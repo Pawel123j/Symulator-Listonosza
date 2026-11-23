@@ -24,6 +24,14 @@ namespace Listonosz.Gameplay
         [Tooltip("Loguj akcje interakcji do Console.")]
         [SerializeField] private bool logActions = true;
 
+        internal bool InteractionsEnabled { get; set; } = true;
+
+        internal void ResetForNewDay()
+        {
+            _completed.Clear();
+            _inventory.Clear();
+        }
+
         private PlayerInventory _inventory;
         private InputAction _interactAction;
         private readonly HashSet<DeliverySO> _completed = new HashSet<DeliverySO>();
@@ -106,6 +114,11 @@ namespace Listonosz.Gameplay
 
         private void TryInteract()
         {
+            if (!InteractionsEnabled)
+            {
+                return;
+            }
+
             switch (CurrentInteractable)
             {
                 case DeliveryPickupPoint pickup:
