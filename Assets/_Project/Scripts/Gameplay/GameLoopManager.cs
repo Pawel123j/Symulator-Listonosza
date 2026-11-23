@@ -155,6 +155,11 @@ namespace Listonosz.Gameplay
         /// <summary>Rozpoczyna nowy dzień: zeruje licznik, wynik i czas, wchodzi w stan DayStart.</summary>
         public void StartDay()
         {
+            if (deliveryService != null)
+            {
+                deliveryService.ResetForNewDay();
+            }
+
             _completed = 0;
             _score = 0;
             _combo = 0;
@@ -257,6 +262,11 @@ namespace Listonosz.Gameplay
 
         private void SetState(GameState next)
         {
+            if (deliveryService != null)
+            {
+                deliveryService.InteractionsEnabled = next == GameState.Working;
+            }
+
             _state = next;
             onStateChanged?.Raise(next);
         }
