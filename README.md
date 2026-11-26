@@ -104,7 +104,10 @@ Kod wyjścia `0` = wszystkie asercje przeszły. Kontrakt objęty testami:
   (gracz na urządzeniu nie dostaje komunikatu);
 - kanały `EventChannelSO` (assety) przeżywają scenę: każdy słuchacz zapisuje się w `OnEnable` i wypisuje
   w `OnDisable`, więc po ponownym wejściu do sceny liczba subskrypcji jest taka sama, a jedno zdarzenie
-  daje jedną reakcję.
+  daje jedną reakcję;
+- scena wejścia buildu: pierwsza włączona scena w `ProjectSettings/EditorBuildSettings.asset` to
+  `Playground.unity` i jest to ta sama scena, którą buduje `MobileBuild.BuildAndroid` (stała `ScenePath`);
+  GUID w manifeście zgadza się z `.meta` sceny. `Bootstrap.unity` służy tylko do testu Etapu 0 w edytorze.
 
 Ograniczenie: to nie zastępuje Play Mode ani testu na urządzeniu (brak renderowania, fizyki, dotyku).
 
