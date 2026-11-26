@@ -28,6 +28,13 @@ internal static class Program
         Run("C1 DayEnd(goal reached) -> Advance -> new round", C1_DayEndByGoalToNewRound);
         Run("C2 DayEnd(timeout, parcel carried) -> Advance -> new round", C2_DayEndByTimeoutToNewRound);
         Run("C3 Previously supported: autoStartWork skips the briefing on every new round", C3_AutoStartWork);
+        Run("D1 Similar labels: parcel for 'ul. Kwiatowa 1' is not accepted at 'ul. Kwiatowa 12'", D1_SimilarLabels);
+        Run("D2 Identical label and id on two address assets: binding is by asset, not by text", D2_IdenticalLabels);
+        Run("D3 Carrying parcels for both similar addresses: each target takes only its own", D3_BothCarried);
+        Run("E1 Database: every entry bound to an existing address (typical)", E1_DatabaseTypical);
+        Run("E2 Database: empty slot in the list does not count as a parcel", E2_DatabaseNullSlot);
+        Run("E3 Database: the same parcel listed twice counts once", E3_DatabaseDuplicate);
+        Run("E4 Database: parcel without an address is listed but can never be delivered", E4_UnboundParcel);
 
         Console.WriteLine();
         Console.WriteLine(_failures == 0
@@ -230,6 +237,115 @@ internal static class Program
         ExitPlayMode();
     }
 
+    // ------------------------------------------------------------------ D: similar address labels
+
+    private static void D1_SimilarLabels()
+    {
+        EnterPlayMode();
+        Fixture f = Fixture.Build(day: x => new List<DeliverySO> { x.P1 }); // only P1 -> A "ul. Kwiatowa 1"
+        FakeEngine.Tick(0f);
+        Press();
+        Interact(f, f.PickupPos);
+        Interact(f, f.TargetBPos); // B = "ul. Kwiatowa 12" (A's label is its prefix)
+        Eq("at B: nothing delivered", 0, f.Completed.Count);
+        Eq("at B: P1 still in the bag", "P1", Labels(f.Inventory.Carried));
+        Interact(f, f.TargetAPos);
+        Eq("at A: P1 delivered", "P1", Labels(f.Completed));
+        Eq("day complete (goal 1)", GameState.DayEnd, f.Loop.State);
+        ExitPlayMode();
+    }
+
+    private static void D2_IdenticalLabels()
+    {
+        EnterPlayMode();
+        Fixture f = Fixture.Build(
+            day: x => new List<DeliverySO> { x.P1 },
+            addresses: x =>
+            {
+                Fixture.Set(x.AddrB, "displayName", "ul. Kwiatowa 1");
+                Fixture.Set(x.AddrB, "addressId", "A");
+            });
+        FakeEngine.Tick(0f);
+        Eq("labels really identical", f.AddrA.DisplayName + "|" + f.AddrA.AddressId, f.AddrB.DisplayName + "|" + f.AddrB.AddressId);
+        Press();
+        Interact(f, f.PickupPos);
+        Interact(f, f.TargetBPos);
+        Eq("at B (same text, other asset): nothing delivered", 0, f.Completed.Count);
+        Interact(f, f.TargetAPos);
+        Eq("at A: P1 delivered", "P1", Labels(f.Completed));
+        ExitPlayMode();
+    }
+
+    private static void D3_BothCarried()
+    {
+        EnterPlayMode();
+        Fixture f = Fixture.Build();
+        FakeEngine.Tick(0f);
+        Press();
+        Interact(f, f.PickupPos);
+        Interact(f, f.TargetBPos);
+        Eq("at B: P2 delivered, P1 kept", "P2|P1", Labels(f.Completed) + "|" + Labels(f.Inventory.Carried));
+        Interact(f, f.TargetAPos);
+        Eq("at A: P1 delivered", "P2,P1", Labels(f.Completed));
+        ExitPlayMode();
+    }
+
+    // ------------------------------------------------------------------ E: database <-> addresses
+
+    private static void E1_DatabaseTypical()
+    {
+        EnterPlayMode();
+        Fixture f = Fixture.Build();
+        FakeEngine.Tick(0f);
+        Eq("Goal = parcels in the day", 2, f.Loop.Goal);
+        PlayFullDay(f);
+        Eq("day completed by goal", GameState.DayEnd, f.Loop.State);
+        Eq("stars", 3, f.Loop.StarRating);
+        ExitPlayMode();
+    }
+
+    private static void E2_DatabaseNullSlot()
+    {
+        EnterPlayMode();
+        Fixture f = Fixture.Build(day: x => new List<DeliverySO> { x.P1, null, x.P2 });
+        FakeEngine.Tick(0f);
+        Eq("Goal counts real parcels only", 2, f.Loop.Goal);
+        PlayFullDay(f);
+        Eq("both parcels delivered", "P1,P2", Labels(f.Completed));
+        Eq("day completed by goal", GameState.DayEnd, f.Loop.State);
+        Eq("stars", 3, f.Loop.StarRating);
+        ExitPlayMode();
+    }
+
+    private static void E3_DatabaseDuplicate()
+    {
+        EnterPlayMode();
+        Fixture f = Fixture.Build(day: x => new List<DeliverySO> { x.P1, x.P2, x.P2 });
+        FakeEngine.Tick(0f);
+        Eq("Goal counts P2 once", 2, f.Loop.Goal);
+        PlayFullDay(f);
+        Eq("pickup gave P2 once", 2, f.Picked.Count);
+        Eq("day completed by goal", GameState.DayEnd, f.Loop.State);
+        ExitPlayMode();
+    }
+
+    private static void E4_UnboundParcel()
+    {
+        EnterPlayMode();
+        Fixture f = Fixture.Build(day: x => new List<DeliverySO> { x.P1, Fixture.Parcel("P3", null, DeliveryPriority.Normal) });
+        FakeEngine.Tick(0f);
+        Eq("unbound parcel is still a listed parcel (documented: destination may be null)", 2, f.Loop.Goal);
+        Press();
+        Interact(f, f.PickupPos);
+        Interact(f, f.TargetAPos);
+        Interact(f, f.TargetBPos);
+        Eq("only P1 delivered", "P1", Labels(f.Completed));
+        Eq("P3 stays in the bag", "P3", Labels(f.Inventory.Carried));
+        FakeEngine.Tick(61f);
+        Eq("P3 failed at day end", "P3", Labels(f.Failed));
+        ExitPlayMode();
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private static void PlayFullDay(Fixture f)
@@ -323,7 +439,13 @@ internal static class Program
         public Vector3 TargetAPos = new Vector3(10f, 0f, 0f);
         public Vector3 TargetBPos = new Vector3(20f, 0f, 0f);
 
-        public static Fixture Build(bool autoStartWork = false)
+        public DeliverySO P1, P2;
+        public AddressPointSO AddrA, AddrB;
+        public readonly List<DeliverySO> Completed = new List<DeliverySO>();
+
+        /// <summary><paramref name="day"/> (optional) builds the day list from (fixture with P1/P2/AddrA/AddrB set).</summary>
+        public static Fixture Build(bool autoStartWork = false, Func<Fixture, List<DeliverySO>> day = null,
+            Action<Fixture> addresses = null)
         {
             var f = new Fixture();
             var chPicked = ScriptableObject.CreateInstance<DeliveryEventChannelSO>();
@@ -334,13 +456,15 @@ internal static class Program
             chFail.OnEventRaised += d => f.Failed.Add(d);
             chState.OnEventRaised += s => f.States.Add(s.ToString());
 
-            var addrA = Address("A", "ul. Testowa 1");
-            var addrB = Address("B", "ul. Testowa 2");
-            var p1 = Parcel("P1", addrA, DeliveryPriority.Normal);
-            var p2 = Parcel("P2", addrB, DeliveryPriority.High);
+            chDone.OnEventRaised += d => f.Completed.Add(d);
+            var addrA = f.AddrA = Address("A", "ul. Kwiatowa 1");
+            var addrB = f.AddrB = Address("B", "ul. Kwiatowa 12");
+            addresses?.Invoke(f);
+            var p1 = f.P1 = Parcel("P1", addrA, DeliveryPriority.Normal);
+            var p2 = f.P2 = Parcel("P2", addrB, DeliveryPriority.High);
             var db = ScriptableObject.CreateInstance<DeliveryDatabaseSO>();
             Set(db, "dayLabel", "Dzień testowy");
-            Set(db, "deliveries", new List<DeliverySO> { p1, p2 });
+            Set(db, "deliveries", day != null ? day(f) : new List<DeliverySO> { p1, p2 });
 
             // Player: inventory + service. Serialized refs are set before Awake/OnEnable matter,
             // mirroring the scene asset; channels are only read at runtime so late assignment is fine.
@@ -388,7 +512,7 @@ internal static class Program
             wire(go.AddComponent<T>());
         }
 
-        private static AddressPointSO Address(string id, string display)
+        internal static AddressPointSO Address(string id, string display)
         {
             var a = ScriptableObject.CreateInstance<AddressPointSO>();
             Set(a, "addressId", id);
@@ -396,7 +520,7 @@ internal static class Program
             return a;
         }
 
-        private static DeliverySO Parcel(string label, AddressPointSO to, DeliveryPriority prio)
+        internal static DeliverySO Parcel(string label, AddressPointSO to, DeliveryPriority prio)
         {
             var d = ScriptableObject.CreateInstance<DeliverySO>();
             Set(d, "id", label);
@@ -410,7 +534,7 @@ internal static class Program
             target.GetType().GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)?.Invoke(target, null);
 
         /// <summary>Inspector/serialization adapter: assigns a [SerializeField] private field.</summary>
-        private static void Set(object target, string field, object value)
+        internal static void Set(object target, string field, object value)
         {
             FieldInfo fi = target.GetType().GetField(field, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
                            ?? throw new MissingFieldException(target.GetType().Name, field);
