@@ -22,7 +22,32 @@ namespace Listonosz.Data
         /// <summary>Lista przesyłek (tylko do odczytu) zaplanowanych na dzień.</summary>
         public IReadOnlyList<DeliverySO> Deliveries => deliveries;
 
-        /// <summary>Liczba przesyłek w bazie.</summary>
-        public int Count => deliveries != null ? deliveries.Count : 0;
+        /// <summary>
+        /// Liczba przesyłek w bazie: unikalne, niepuste wpisy. Puste pozycje listy (null) i powtórzenia
+        /// tej samej przesyłki nie są liczone — gracz może odebrać i dostarczyć każdą przesyłkę najwyżej
+        /// raz dziennie, więc tylko takie wpisy są osiągalnym celem dnia (GameLoopManager.Goal przy dailyGoal = 0).
+        /// </summary>
+        public int Count
+        {
+            get
+            {
+                if (deliveries == null)
+                {
+                    return 0;
+                }
+
+                int count = 0;
+                for (int i = 0; i < deliveries.Count; i++)
+                {
+                    DeliverySO d = deliveries[i];
+                    if (d != null && deliveries.IndexOf(d) == i)
+                    {
+                        count++;
+                    }
+                }
+
+                return count;
+            }
+        }
     }
 }

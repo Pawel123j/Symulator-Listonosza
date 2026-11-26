@@ -91,7 +91,12 @@ Kod wyjścia `0` = wszystkie asercje przeszły. Kontrakt objęty testami:
 - dwa starty tej samej fikstury dają ten sam stan początkowy (`DayStart`, wynik/licznik/combo 0,
   pełny czas, pusta torba, jeden `GameManager`); **rekord (`BestScore`) celowo przetrwa** między startami;
 - z `DayEnd` jedno „Dalej” przechodzi do `DayStart` nowego dnia (bez pomijania briefingu, chyba że
-  `autoStartWork`), zeruje licznik/wynik/combo/czas i udostępnia ponownie te same przesyłki.
+  `autoStartWork`), zeruje licznik/wynik/combo/czas i udostępnia ponownie te same przesyłki;
+- przesyłka jest powiązana z adresem przez **referencję do assetu `AddressPointSO`**, nie przez tekst:
+  podobne lub identyczne `DisplayName`/`AddressId` dwóch adresów nie powodują pomyłki dostawy;
+- `DeliveryDatabaseSO.Count` (cel dnia przy `dailyGoal = 0`) liczy unikalne, niepuste wpisy — pusta
+  pozycja listy ani powtórzona przesyłka nie blokują ukończenia dnia. Przesyłka bez adresu nadal jest
+  liczona, ale nie da się jej dostarczyć (na koniec dnia trafia do nieudanych).
 
 Ograniczenie: to nie zastępuje Play Mode ani testu na urządzeniu (brak renderowania, fizyki, dotyku).
 
