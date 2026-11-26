@@ -77,3 +77,7 @@ crashlytics-build.properties
 # Headless logic tests (tools/LogicTests) — keep the project file, ignore build output
 !/tools/LogicTests/LogicTests.csproj
 /tools/LogicTests/bin/
+
+# Editor/build logs written to the project root (e.g. -logFile unity_apk.log from docs/android-build.md):
+# raw logs contain local machine paths and must not be committed
+/*.log
