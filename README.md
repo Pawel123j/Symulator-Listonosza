@@ -98,7 +98,10 @@ Kod wyjścia `0` = wszystkie asercje przeszły. Kontrakt objęty testami:
   pozycja listy ani powtórzona przesyłka nie blokują ukończenia dnia. Przesyłka bez adresu nadal jest
   liczona, ale nie da się jej dostarczyć (na koniec dnia trafia do nieudanych);
 - powrót do punktu odbioru wydaje tylko przesyłki jeszcze nie dostarczone i nie niesione (do limitu
-  torby `maxItems`); dostarczona przesyłka nie wraca tego samego dnia.
+  torby `maxItems`); dostarczona przesyłka nie wraca tego samego dnia;
+- poprawny punkt: jedno confetti + jeden dźwięk (`DeliveryFeedback`) nad komórką adresu przesyłki;
+  błędny punkt: brak efektów i zdarzeń, torba i wynik bez zmian — jedyną informacją jest log w Console
+  (gracz na urządzeniu nie dostaje komunikatu).
 
 Ograniczenie: to nie zastępuje Play Mode ani testu na urządzeniu (brak renderowania, fizyki, dotyku).
 
