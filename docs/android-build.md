@@ -9,20 +9,20 @@ Projekt ma gotowy skrypt buildu APK:
 
 Wbudowany Android SDK Unity lezy w `C:\Program Files`, wiec akceptacja licencji wymaga administratora.
 
-Uruchom PowerShell jako administrator i wykonaj:
+Uruchom PowerShell jako administrator w katalogu projektu (`<PROJEKT>` = katalog z tym repozytorium) i wykonaj:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File "C:\Users\Pawel\Desktop\Symulator Listonosza\tools\Accept-UnityAndroidLicenses.ps1"
+powershell -ExecutionPolicy Bypass -File "<PROJEKT>\tools\Accept-UnityAndroidLicenses.ps1"
 ```
 
 Przy pytaniach `sdkmanager` wpisuj `y`.
 
 ## Build APK z batchmode
 
-Po zaakceptowaniu licencji:
+Po zaakceptowaniu licencji (ścieżka do `Unity.exe` to domyślna lokalizacja Unity Hub — dostosuj ją):
 
 ```powershell
-& "C:\Program Files\Unity\Hub\Editor\6000.3.14f1\Editor\Unity.exe" -batchmode -nographics -quit -accept-apiupdate -buildTarget Android -projectPath "C:\Users\Pawel\Desktop\Symulator Listonosza" -executeMethod Listonosz.EditorTools.MobileBuild.BuildAndroid -logFile "C:\Users\Pawel\Desktop\Symulator Listonosza\unity_apk.log"
+& "C:\Program Files\Unity\Hub\Editor\6000.3.14f1\Editor\Unity.exe" -batchmode -nographics -quit -accept-apiupdate -buildTarget Android -projectPath "<PROJEKT>" -executeMethod Listonosz.EditorTools.MobileBuild.BuildAndroid -logFile "<PROJEKT>\unity_apk.log"
 ```
 
 Albo popros Codexa: "zbuduj APK".
