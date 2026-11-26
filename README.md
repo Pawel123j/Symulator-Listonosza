@@ -77,6 +77,24 @@ wygeneruje edytor przy pierwszym otwarciu.
 się niezależnie od zawartości sceny. Scena Bootstrap jest celowo „pusta” — jej zadaniem
 jest inicjalizacja systemów (kamera/rozgrywka dojdą w kolejnych etapach).
 
+## Testy logiki pętli dnia (bez Unity)
+
+`tools/LogicTests` kompiluje prawdziwe skrypty z `Assets/_Project/Scripts` (Core, Data, Grid,
+pętla dnia i dostawy) z atrapą API Unity (`UnityStubs.cs`: cykl życia, `PlayerPrefs` w pamięci,
+symulowane akcje wejścia). Wymaga .NET SDK 8:
+
+```
+dotnet run --project tools/LogicTests
+```
+
+Kod wyjścia `0` = wszystkie asercje przeszły. Kontrakt objęty testami:
+- dwa starty tej samej fikstury dają ten sam stan początkowy (`DayStart`, wynik/licznik/combo 0,
+  pełny czas, pusta torba, jeden `GameManager`); **rekord (`BestScore`) celowo przetrwa** między startami;
+- z `DayEnd` jedno „Dalej” przechodzi do `DayStart` nowego dnia (bez pomijania briefingu, chyba że
+  `autoStartWork`), zeruje licznik/wynik/combo/czas i udostępnia ponownie te same przesyłki.
+
+Ograniczenie: to nie zastępuje Play Mode ani testu na urządzeniu (brak renderowania, fizyki, dotyku).
+
 ## Decyzje architektoniczne
 
 Patrz [docs/adr](docs/adr/README.md).
