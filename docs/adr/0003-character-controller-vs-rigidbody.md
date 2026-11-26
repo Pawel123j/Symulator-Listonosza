@@ -1,5 +1,7 @@
 # 0003 — Sterowanie ruchem gracza: CharacterController zamiast Rigidbody
 
+[English](0003-character-controller-vs-rigidbody.en.md) · **Polski**
+
 * Status: zaakceptowane
 * Data: 2026-06-18
 * Decydenci: zespół Symulator Listonosza

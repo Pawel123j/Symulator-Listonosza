@@ -1,5 +1,7 @@
 # Android build
 
+[English](android-build.en.md) · **Polski**
+
 Projekt ma gotowy skrypt buildu APK:
 
 - `Listonosz.EditorTools.MobileBuild.BuildAndroid`

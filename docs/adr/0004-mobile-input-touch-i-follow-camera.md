@@ -1,5 +1,7 @@
 # 0004 — Mobile-first: sterowanie dotykowe z Touchscreen + kamera podążająca
 
+[English](0004-mobile-input-touch-i-follow-camera.en.md) · **Polski**
+
 * Status: zaakceptowane
 * Data: 2026-06-19
 * Decydenci: zespół Symulator Listonosza

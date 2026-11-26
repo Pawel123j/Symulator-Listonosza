@@ -1,5 +1,7 @@
 # Technical demo (3 minutes) and its safety boundaries
 
+**English** · [Polski](demo.pl.md)
+
 Scope: the day-loop logic and the build entry scene, proven by the headless harness in
 `tools/LogicTests`. It does **not** cover Play Mode, the APK build or a device; see the boundary below.
 
@@ -24,7 +26,7 @@ no credentials, no network after the SDK is installed, no Unity licence.
 
 ## Script (rehearsed: ~11 s of machine time on a fresh clone)
 
-Prerequisites: .NET SDK 8 installed, repository cloned (the harness lives on the PR branches until merged).
+Prerequisites: .NET SDK 8 installed, repository cloned.
 
 1. **Problem (30 s).** A player who finishes a day and starts again must get the same clean
    start; the entry is `GameManager.Bootstrap` (`[RuntimeInitializeOnLoadMethod]`) in
