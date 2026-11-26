@@ -35,6 +35,10 @@ internal static class Program
         Run("E2 Database: empty slot in the list does not count as a parcel", E2_DatabaseNullSlot);
         Run("E3 Database: the same parcel listed twice counts once", E3_DatabaseDuplicate);
         Run("E4 Database: parcel without an address is listed but can never be delivered", E4_UnboundParcel);
+        Run("R1 Return to pickup with everything still carried: nothing new, bag unchanged", R1_ReturnNothingDelivered);
+        Run("R2 Return to pickup after one delivery: delivered parcel is not issued again", R2_ReturnAfterDelivery);
+        Run("R3 Bag limit 1: return after delivering issues the next parcel", R3_LimitedBagRefill);
+        Run("R4 Bag limit 1: return while full issues nothing", R4_LimitedBagFull);
 
         Console.WriteLine();
         Console.WriteLine(_failures == 0
@@ -343,6 +347,67 @@ internal static class Program
         Eq("P3 stays in the bag", "P3", Labels(f.Inventory.Carried));
         FakeEngine.Tick(61f);
         Eq("P3 failed at day end", "P3", Labels(f.Failed));
+        ExitPlayMode();
+    }
+
+    // ------------------------------------------------------------------ R: return to the pickup point
+
+    private static Fixture StartWorking(int maxItems)
+    {
+        EnterPlayMode();
+        Fixture f = Fixture.Build();
+        Fixture.Set(f.Inventory, "maxItems", maxItems);
+        FakeEngine.Tick(0f);
+        Press(); // Working
+        return f;
+    }
+
+    private static void R1_ReturnNothingDelivered()
+    {
+        Fixture f = StartWorking(0);
+        Interact(f, f.PickupPos);
+        Eq("first visit: bag", "P1,P2", Labels(f.Inventory.Carried));
+        Interact(f, new Vector3(100f, 0f, 0f)); // walk away (nothing in range)
+        Interact(f, f.PickupPos);
+        Eq("return: bag unchanged", "P1,P2", Labels(f.Inventory.Carried));
+        Eq("return: no new pickup events", 2, f.Picked.Count);
+        ExitPlayMode();
+    }
+
+    private static void R2_ReturnAfterDelivery()
+    {
+        Fixture f = StartWorking(0);
+        Interact(f, f.PickupPos);
+        Interact(f, f.TargetAPos); // P1 delivered
+        Interact(f, f.PickupPos);
+        Eq("return: bag holds only the undelivered parcel", "P2", Labels(f.Inventory.Carried));
+        Eq("return: no new pickup events", 2, f.Picked.Count);
+        Interact(f, f.TargetAPos);
+        Eq("no second delivery of P1", "P1", Labels(f.Completed));
+        ExitPlayMode();
+    }
+
+    private static void R3_LimitedBagRefill()
+    {
+        Fixture f = StartWorking(1);
+        Interact(f, f.PickupPos);
+        Eq("first visit (limit 1): bag", "P1", Labels(f.Inventory.Carried));
+        Interact(f, f.TargetAPos);
+        Interact(f, f.PickupPos);
+        Eq("return: next parcel issued", "P2", Labels(f.Inventory.Carried));
+        Eq("pickup events in total", "P1,P2", Labels(f.Picked));
+        Interact(f, f.TargetBPos);
+        Eq("day completed", GameState.DayEnd, f.Loop.State);
+        ExitPlayMode();
+    }
+
+    private static void R4_LimitedBagFull()
+    {
+        Fixture f = StartWorking(1);
+        Interact(f, f.PickupPos);
+        Interact(f, f.PickupPos); // return without delivering
+        Eq("bag still P1 only", "P1", Labels(f.Inventory.Carried));
+        Eq("pickup events", "P1", Labels(f.Picked));
         ExitPlayMode();
     }
 

@@ -96,7 +96,9 @@ Kod wyjścia `0` = wszystkie asercje przeszły. Kontrakt objęty testami:
   podobne lub identyczne `DisplayName`/`AddressId` dwóch adresów nie powodują pomyłki dostawy;
 - `DeliveryDatabaseSO.Count` (cel dnia przy `dailyGoal = 0`) liczy unikalne, niepuste wpisy — pusta
   pozycja listy ani powtórzona przesyłka nie blokują ukończenia dnia. Przesyłka bez adresu nadal jest
-  liczona, ale nie da się jej dostarczyć (na koniec dnia trafia do nieudanych).
+  liczona, ale nie da się jej dostarczyć (na koniec dnia trafia do nieudanych);
+- powrót do punktu odbioru wydaje tylko przesyłki jeszcze nie dostarczone i nie niesione (do limitu
+  torby `maxItems`); dostarczona przesyłka nie wraca tego samego dnia.
 
 Ograniczenie: to nie zastępuje Play Mode ani testu na urządzeniu (brak renderowania, fizyki, dotyku).
 
