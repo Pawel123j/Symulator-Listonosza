@@ -42,6 +42,9 @@ internal static class Program
         Run("F1 Feedback: correct point -> one confetti + one sound over the address cell", F1_CorrectPoint);
         Run("F2 Feedback: wrong point -> no effects, no events, only an info log", F2_WrongPoint);
         Run("F3 Feedback: last delivery (ends the day) still celebrated; nothing after DayEnd", F3_LastDeliveryAndAfter);
+        Run("S1 Channels: scene loaded, unloaded, loaded again -> same listener count, one reaction per event", S1_SceneReentry);
+        Run("S2 Channels: object disabled and re-enabled inside the scene -> no extra listener", S2_DisableEnable);
+        Run("S3 Channels: three re-entries in a row -> count stays flat", S3_ManyReentries);
 
         Console.WriteLine();
         Console.WriteLine(_failures == 0
@@ -467,6 +470,75 @@ internal static class Program
         Eq("after DayEnd: no new effects", "confetti=2 sounds=2", Effects());
         Eq("after DayEnd: no log", 0, FakeEngine.Logs.Count);
         ExitPlayMode();
+    }
+
+    // ------------------------------------------------------------------ S: channel subscriptions
+
+    // Per loaded scene the harness compiles two completed-listeners (GameLoopManager, DeliveryFeedback)
+    // and no picked/failed/state listeners (the UI that listens to those is not compiled here).
+    private const string OneScene = "picked=0 completed=2 failed=0 state=0";
+    private const string NoScene = "picked=0 completed=0 failed=0 state=0";
+
+    private static Fixture LoadScene(Channels ch)
+    {
+        Fixture f = Fixture.Build(channels: ch);
+        FakeEngine.Tick(0f);
+        return f;
+    }
+
+    private static void S1_SceneReentry()
+    {
+        var ch = new Channels(); // channel assets outlive scenes
+        EnterPlayMode();
+        LoadScene(ch);
+        Eq("scene 1 loaded", OneScene, ch.Census());
+        ExitPlayMode(); // scene unload: every component gets OnDisable/OnDestroy
+        Eq("after unload", NoScene, ch.Census());
+
+        EnterPlayMode();
+        Fixture f = LoadScene(ch);
+        Eq("scene 2 loaded (not doubled)", OneScene, ch.Census());
+        Press();
+        Interact(f, f.PickupPos);
+        Interact(f, f.TargetAPos);
+        Eq("one delivery -> one effect", "confetti=1 sounds=1", Effects());
+        Eq("one delivery -> scored once", 115, f.Loop.Score);
+        ExitPlayMode();
+    }
+
+    private static void S2_DisableEnable()
+    {
+        var ch = new Channels();
+        EnterPlayMode();
+        Fixture f = LoadScene(ch);
+        f.Feedback.gameObject.SetActive(false);
+        Eq("feedback object inactive", "picked=0 completed=1 failed=0 state=0", ch.Census());
+        Press();
+        Interact(f, f.PickupPos);
+        Interact(f, f.TargetAPos);
+        Eq("delivery while inactive -> no effect", "confetti=0 sounds=0", Effects());
+        f.Feedback.gameObject.SetActive(true);
+        Eq("re-enabled", OneScene, ch.Census());
+        Interact(f, f.TargetBPos);
+        Eq("delivery after re-enable -> one effect", "confetti=1 sounds=1", Effects());
+        ExitPlayMode();
+        Eq("after unload", NoScene, ch.Census());
+    }
+
+    private static void S3_ManyReentries()
+    {
+        var ch = new Channels();
+        var seen = new List<string>();
+        for (int i = 0; i < 3; i++)
+        {
+            EnterPlayMode();
+            LoadScene(ch);
+            seen.Add(ch.Census());
+            ExitPlayMode();
+        }
+
+        Eq("census on each load", OneScene + " | " + OneScene + " | " + OneScene, string.Join(" | ", seen));
+        Eq("after last unload", NoScene, ch.Census());
     }
 
     // ------------------------------------------------------------------ helpers
