@@ -31,5 +31,6 @@
     <Compile Include="$(Scripts)/Gameplay/IInteractable.cs" />
     <Compile Include="$(Scripts)/Gameplay/InteractableRegistry.cs" />
     <Compile Include="$(Scripts)/Gameplay/MobileInput.cs" />
+    <Compile Include="$(Scripts)/Gameplay/DeliveryFeedback.cs" />
   </ItemGroup>
 </Project>

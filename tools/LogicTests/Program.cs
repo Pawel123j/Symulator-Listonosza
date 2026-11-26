@@ -39,6 +39,9 @@ internal static class Program
         Run("R2 Return to pickup after one delivery: delivered parcel is not issued again", R2_ReturnAfterDelivery);
         Run("R3 Bag limit 1: return after delivering issues the next parcel", R3_LimitedBagRefill);
         Run("R4 Bag limit 1: return while full issues nothing", R4_LimitedBagFull);
+        Run("F1 Feedback: correct point -> one confetti + one sound over the address cell", F1_CorrectPoint);
+        Run("F2 Feedback: wrong point -> no effects, no events, only an info log", F2_WrongPoint);
+        Run("F3 Feedback: last delivery (ends the day) still celebrated; nothing after DayEnd", F3_LastDeliveryAndAfter);
 
         Console.WriteLine();
         Console.WriteLine(_failures == 0
@@ -411,6 +414,61 @@ internal static class Program
         ExitPlayMode();
     }
 
+    // ------------------------------------------------------------------ F: feedback after delivery
+
+    private static Fixture StartWorkingLogged()
+    {
+        Fixture f = StartWorking(0);
+        Fixture.Set(f.Service, "logActions", true);
+        Interact(f, f.PickupPos);
+        FakeEngine.Logs.Clear();
+        return f;
+    }
+
+    private static string Effects() =>
+        $"confetti={FakeEngine.Find("Confetti").Count} sounds={AudioSource.Played.Count}";
+
+    private static void F1_CorrectPoint()
+    {
+        Fixture f = StartWorkingLogged();
+        Interact(f, f.TargetAPos);
+        Eq("effects", "confetti=1 sounds=1", Effects());
+        Eq("confetti over cell (10,0) center + 0.7 m", "(10.5, 0.7, 0.5)", FakeEngine.Find("Confetti")[0].transform.position.ToString());
+        Eq("sound at the same point", "(10.5, 0.7, 0.5)", AudioSource.Played[0].ToString());
+        Eq("completed event", "P1", Labels(f.Completed));
+        Eq("info log", "[Listonosz] Dostarczono 'P1' pod ul. Kwiatowa 1. (zaliczone: 1)", string.Join(" | ", FakeEngine.Logs));
+        ExitPlayMode();
+    }
+
+    private static void F2_WrongPoint()
+    {
+        Fixture f = StartWorkingLogged();
+        Interact(f, f.TargetAPos); // deliver P1 so only P2 (for B) is carried...
+        FakeEngine.Logs.Clear();
+        Interact(f, f.TargetAPos); // ...and come back to A: wrong point for P2
+        Eq("effects (only the earlier P1 delivery)", "confetti=1 sounds=1", Effects());
+        Eq("no completed/failed event", "P1|", Labels(f.Completed) + "|" + Labels(f.Failed));
+        Eq("bag unchanged", "P2", Labels(f.Inventory.Carried));
+        Eq("score unchanged (P1 only)", 115, f.Loop.Score);
+        Eq("info log", "[Listonosz] Nie masz przesyłki na adres ul. Kwiatowa 1.", string.Join(" | ", FakeEngine.Logs));
+        ExitPlayMode();
+    }
+
+    private static void F3_LastDeliveryAndAfter()
+    {
+        Fixture f = StartWorkingLogged();
+        Interact(f, f.TargetAPos);
+        Interact(f, f.TargetBPos);
+        Eq("day ended by the last delivery", GameState.DayEnd, f.Loop.State);
+        Eq("effects for both deliveries", "confetti=2 sounds=2", Effects());
+        Eq("second confetti over cell (20,0)", "(20.5, 0.7, 0.5)", FakeEngine.Find("Confetti")[1].transform.position.ToString());
+        FakeEngine.Logs.Clear();
+        Interact(f, f.TargetBPos); // after DayEnd interactions are off
+        Eq("after DayEnd: no new effects", "confetti=2 sounds=2", Effects());
+        Eq("after DayEnd: no log", 0, FakeEngine.Logs.Count);
+        ExitPlayMode();
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private static void PlayFullDay(Fixture f)
@@ -490,6 +548,30 @@ internal static class Program
         };
     }
 
+    /// <summary>Event channel assets. Shared between scene loads when passed to Build (assets outlive scenes).</summary>
+    private sealed class Channels
+    {
+        public readonly DeliveryEventChannelSO Picked = ScriptableObject.CreateInstance<DeliveryEventChannelSO>();
+        public readonly DeliveryEventChannelSO Done = ScriptableObject.CreateInstance<DeliveryEventChannelSO>();
+        public readonly DeliveryEventChannelSO Fail = ScriptableObject.CreateInstance<DeliveryEventChannelSO>();
+        public readonly GameStateEventChannelSO State = ScriptableObject.CreateInstance<GameStateEventChannelSO>();
+
+        /// <summary>Observation only: game components (not test listeners) currently subscribed to the channel.</summary>
+        public static int ComponentListeners(object channel)
+        {
+            FieldInfo fi = null;
+            for (Type t = channel.GetType(); t != null && fi == null; t = t.BaseType)
+                fi = t.GetField("OnEventRaised", BindingFlags.Instance | BindingFlags.NonPublic);
+            var d = fi?.GetValue(channel) as Delegate;
+            int n = 0;
+            if (d != null) foreach (Delegate h in d.GetInvocationList()) if (h.Target is Component) n++;
+            return n;
+        }
+
+        public string Census() =>
+            $"picked={ComponentListeners(Picked)} completed={ComponentListeners(Done)} failed={ComponentListeners(Fail)} state={ComponentListeners(State)}";
+    }
+
     /// <summary>Synthetic playground: pickup at x=0, target A at x=10, target B at x=20, 60 s day, goal = all (2).</summary>
     private sealed class Fixture
     {
@@ -507,16 +589,19 @@ internal static class Program
         public DeliverySO P1, P2;
         public AddressPointSO AddrA, AddrB;
         public readonly List<DeliverySO> Completed = new List<DeliverySO>();
+        public DeliveryFeedback Feedback;
+        public Channels Ch;
 
         /// <summary><paramref name="day"/> (optional) builds the day list from (fixture with P1/P2/AddrA/AddrB set).</summary>
         public static Fixture Build(bool autoStartWork = false, Func<Fixture, List<DeliverySO>> day = null,
-            Action<Fixture> addresses = null)
+            Action<Fixture> addresses = null, Channels channels = null)
         {
             var f = new Fixture();
-            var chPicked = ScriptableObject.CreateInstance<DeliveryEventChannelSO>();
-            var chDone = ScriptableObject.CreateInstance<DeliveryEventChannelSO>();
-            var chFail = ScriptableObject.CreateInstance<DeliveryEventChannelSO>();
-            var chState = ScriptableObject.CreateInstance<GameStateEventChannelSO>();
+            f.Ch = channels ?? new Channels();
+            var chPicked = f.Ch.Picked;
+            var chDone = f.Ch.Done;
+            var chFail = f.Ch.Fail;
+            var chState = f.Ch.State;
             chPicked.OnEventRaised += d => f.Picked.Add(d);
             chFail.OnEventRaised += d => f.Failed.Add(d);
             chState.OnEventRaised += s => f.States.Add(s.ToString());
@@ -524,6 +609,8 @@ internal static class Program
             chDone.OnEventRaised += d => f.Completed.Add(d);
             var addrA = f.AddrA = Address("A", "ul. Kwiatowa 1");
             var addrB = f.AddrB = Address("B", "ul. Kwiatowa 12");
+            Set(addrA, "cell", new Vector2Int(10, 0)); // grid: origin 0, cell 1 m -> target A sits in cell (10,0)
+            Set(addrB, "cell", new Vector2Int(20, 0));
             addresses?.Invoke(f);
             var p1 = f.P1 = Parcel("P1", addrA, DeliveryPriority.Normal);
             var p2 = f.P2 = Parcel("P2", addrB, DeliveryPriority.High);
@@ -557,6 +644,16 @@ internal static class Program
                 Set(l, "onStateChanged", chState);
                 Set(l, "deliveryService", f.Service);
             });
+
+            var grid = ScriptableObject.CreateInstance<Listonosz.Grid.GridConfig>();
+            Set(grid, "cellSize", 1f);
+            var systemsGo = new GameObject("Systemy");
+            f.Feedback = AddWired<DeliveryFeedback>(systemsGo, c =>
+            {
+                Set(c, "onCompleted", chDone);
+                Set(c, "gridConfig", grid);
+            });
+            FakeEngine_Invoke(f.Feedback, "Awake"); // grid is read in Awake
             return f;
         }
 

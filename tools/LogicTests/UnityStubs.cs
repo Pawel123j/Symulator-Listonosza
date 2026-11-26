@@ -114,6 +114,19 @@ namespace UnityEngine
             if (!c.Destroyed && !Destroyed) FakeEngine.Invoke(c, "OnEnable");
         }
 
+        public bool activeSelf { get; private set; } = true;
+
+        /// <summary>Unity semantics: deactivation runs OnDisable, re-activation runs OnEnable.</summary>
+        public void SetActive(bool value)
+        {
+            if (value == activeSelf || Destroyed) return;
+            activeSelf = value;
+            foreach (Component c in Components.ToArray())
+            {
+                if (!c.Destroyed) FakeEngine.Invoke(c, value ? "OnEnable" : "OnDisable");
+            }
+        }
+
         public T GetComponent<T>() where T : class
         {
             foreach (Component c in Components)
@@ -150,7 +163,7 @@ namespace UnityEngine
             var snapshot = new List<Component>();
             foreach (GameObject go in Objects.ToArray())
             {
-                if (!go.Destroyed) snapshot.AddRange(go.Components);
+                if (!go.Destroyed && go.activeSelf) snapshot.AddRange(go.Components);
             }
 
             foreach (Component c in snapshot)
@@ -174,6 +187,7 @@ namespace UnityEngine
             foreach (GameObject go in Objects.ToArray()) DestroyGameObject(go);
             Objects.Clear();
             Logs.Clear();
+            AudioSource.Played.Clear();
             DontDestroyOnLoadCount = 0;
         }
 
@@ -184,10 +198,18 @@ namespace UnityEngine
             go.Destroyed = true;
         }
 
+        /// <summary>Live GameObjects with the given name (e.g. spawned "Confetti").</summary>
+        public static List<GameObject> Find(string name)
+        {
+            var r = new List<GameObject>();
+            foreach (GameObject go in Objects) if (!go.Destroyed && go.name == name) r.Add(go);
+            return r;
+        }
+
         internal static void DestroyComponent(Component c)
         {
             if (c.Destroyed) return;
-            Invoke(c, "OnDisable");
+            if (c.gameObject == null || c.gameObject.activeSelf) Invoke(c, "OnDisable");
             Invoke(c, "OnDestroy");
             c.Destroyed = true;
         }
@@ -244,6 +266,9 @@ namespace UnityEngine
         public static int Clamp(int v, int min, int max) => Math.Clamp(v, min, max);
         public static float Clamp(float v, float min, float max) => Math.Clamp(v, min, max);
         public static float Abs(float f) => Math.Abs(f);
+        public const float PI = (float)Math.PI;
+        public static float Sin(float f) => (float)Math.Sin(f);
+        public static float Exp(float f) => (float)Math.Exp(f);
     }
 
     public struct Vector2
@@ -271,6 +296,7 @@ namespace UnityEngine
         public Vector3(float x, float y, float z) { this.x = x; this.y = y; this.z = z; }
         public static Vector3 zero => new Vector3(0f, 0f, 0f);
         public float sqrMagnitude => x * x + y * y + z * z;
+        public override string ToString() => $"({x:0.##}, {y:0.##}, {z:0.##})";
         public static Vector3 operator -(Vector3 a, Vector3 b) => new Vector3(a.x - b.x, a.y - b.y, a.z - b.z);
     }
 
@@ -305,6 +331,86 @@ namespace UnityEngine
 
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
     public sealed class RequireComponent : Attribute { public RequireComponent(Type t) { Type = t; } public Type Type { get; } }
+}
+
+namespace UnityEngine
+{
+    // ---- audio / particles / rendering: record-only adapters (nothing is played or drawn) ----
+
+    public sealed class AudioClip : Object
+    {
+        public int Samples;
+        public static AudioClip Create(string name, int lengthSamples, int channels, int frequency, bool stream) =>
+            new AudioClip { name = name, Samples = lengthSamples };
+        public bool SetData(float[] data, int offsetSamples) => true;
+    }
+
+    public sealed class AudioSource : Component
+    {
+        public static readonly List<Vector3> Played = new List<Vector3>();
+        public static void PlayClipAtPoint(AudioClip clip, Vector3 position, float volume) => Played.Add(position);
+    }
+
+    public sealed class Shader : Object
+    {
+        public static Shader Find(string name) => null; // no render pipeline in the harness
+    }
+
+    public sealed class Material : Object
+    {
+        public Material(Shader s) { }
+    }
+
+    public enum ParticleSystemStopBehavior { StopEmittingAndClear, StopEmitting }
+    public enum ParticleSystemStopAction { None, Disable, Destroy, Callback }
+    public enum ParticleSystemShapeType { Sphere, Hemisphere, Cone, Box }
+
+    public sealed class ParticleSystemRenderer : Component
+    {
+        public Material sharedMaterial { get; set; }
+    }
+
+    [RequireComponent(typeof(ParticleSystemRenderer))]
+    public sealed class ParticleSystem : Component
+    {
+        public int PlayCount;
+        public void Stop(bool withChildren, ParticleSystemStopBehavior b) { }
+        public void Play() => PlayCount++;
+        public MainModule main => default;
+        public EmissionModule emission => default;
+        public ShapeModule shape => default;
+
+        public struct MainModule
+        {
+            public bool playOnAwake { get; set; }
+            public float duration { get; set; }
+            public bool loop { get; set; }
+            public float startLifetime { get; set; }
+            public float startSpeed { get; set; }
+            public float startSize { get; set; }
+            public float gravityModifier { get; set; }
+            public int maxParticles { get; set; }
+            public ParticleSystemStopAction stopAction { get; set; }
+            public MinMaxGradient startColor { get; set; }
+        }
+
+        public struct EmissionModule
+        {
+            public float rateOverTime { get; set; }
+            public void SetBursts(Burst[] bursts) { }
+        }
+
+        public struct ShapeModule
+        {
+            public ParticleSystemShapeType shapeType { get; set; }
+            public float angle { get; set; }
+            public float radius { get; set; }
+            public Vector3 rotation { get; set; }
+        }
+
+        public struct MinMaxGradient { public MinMaxGradient(Color a, Color b) { } }
+        public struct Burst { public Burst(float time, short count) { } }
+    }
 }
 
 namespace UnityEngine.InputSystem
