@@ -1,5 +1,7 @@
 # Architecture Decision Records (ADR)
 
+[English](README.en.md) · **Polski**
+
 Decyzje architektoniczne zapisywane w formacie [MADR](https://adr.github.io/madr/).
 Każdy istotny wybór = osobny plik `NNNN-tytul.md`. Numeracja rosnąca, nie zmieniamy
 zaakceptowanych ADR-ów — w razie zmiany decyzji dodajemy nowy ADR i oznaczamy stary jako

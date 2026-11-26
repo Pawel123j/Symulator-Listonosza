@@ -1,5 +1,7 @@
 # 0002 — Ruch swobodny + grid jako warstwa wyłącznie logiczna
 
+[English](0002-ruch-swobodny-grid-logiczny.en.md) · **Polski**
+
 * Status: zaakceptowane
 * Data: 2026-06-18
 * Decydenci: zespół Symulator Listonosza

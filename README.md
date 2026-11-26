@@ -46,7 +46,7 @@ tools/LogicTests/  headless regression tests (.NET 8)
 
 Assembly dependencies enforce the direction of the architecture:
 `Data → Core`, `Grid → Core, Data`, `Gameplay → Core, Data, Grid`, `UI → Core, Data`.
-Design decisions are recorded in [docs/adr](docs/adr/README.md) (in Polish).
+Design decisions are recorded in [docs/adr](docs/adr/README.en.md).
 
 ## Tests without Unity
 
@@ -61,9 +61,29 @@ Requirements: .NET SDK 8 (`apt install dotnet-sdk-8.0` or `winget install Micros
 dotnet run --project tools/LogicTests
 ```
 
-Expected: the last line is `PASSED: <n> checks` and the exit code is `0`. The full list of covered
-behaviour is in [README.pl.md](README.pl.md#testy-logiki-pętli-dnia-bez-unity); a 3-minute demo
-script is in [docs/demo.md](docs/demo.md).
+Expected: the last line is `PASSED: <n> checks` and the exit code is `0`. A 3-minute demo script
+is in [docs/demo.md](docs/demo.md).
+
+Behaviour covered by the tests:
+- two starts of the same fixture give the same initial state (`DayStart`, score/counter/combo 0,
+  full time, empty bag, a single `GameManager`); the **best score is intentionally kept** between starts;
+- from `DayEnd` one "advance" goes to the next day's `DayStart` (the briefing is not skipped unless
+  `autoStartWork`), resets counter/score/combo/time and makes the same parcels available again;
+- a parcel is bound to its address by the **`AddressPointSO` asset reference**, not by text: similar
+  or identical `DisplayName`/`AddressId` of two addresses never cause a wrong delivery;
+- `DeliveryDatabaseSO.Count` (the day goal when `dailyGoal = 0`) counts unique, non-empty entries —
+  an empty list slot or a repeated parcel does not block finishing the day; a parcel without an
+  address still counts but can never be delivered (it fails at the end of the day);
+- returning to the pick-up point hands out only parcels that are neither delivered nor carried (up
+  to the `maxItems` bag limit); a delivered parcel does not come back the same day;
+- correct point: one confetti burst + one sound (`DeliveryFeedback`) above the parcel's address cell;
+  wrong point: no effects or events, bag and score unchanged — the only information is a Console log;
+- `EventChannelSO` channels (assets) outlive the scene: every listener subscribes in `OnEnable` and
+  unsubscribes in `OnDisable`, so re-entering the scene keeps the same number of subscriptions and
+  one event gives one reaction;
+- build entry scene: the first enabled scene in `ProjectSettings/EditorBuildSettings.asset` is
+  `Playground.unity`, the same scene `MobileBuild.BuildAndroid` builds (`ScenePath`), and the
+  manifest GUID matches the scene's `.meta`.
 
 These tests do not replace Play Mode or a device test: there is no rendering, physics or real touch
 input.
@@ -77,7 +97,7 @@ input.
 4. Without a phone: **Game view → Simulator** emulates touch with the mouse.
 
 Android build: menu **Listonosz → Build APK (Android)** or batch mode, see
-[docs/android-build.md](docs/android-build.md). The APK is signed with the Unity debug key.
+[docs/android-build.en.md](docs/android-build.en.md). The APK is signed with the Unity debug key.
 
 ## License
 

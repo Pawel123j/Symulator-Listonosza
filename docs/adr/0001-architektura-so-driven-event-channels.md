@@ -1,5 +1,7 @@
 # 0001 — Architektura: ScriptableObject-driven + event channels
 
+[English](0001-architektura-so-driven-event-channels.en.md) · **Polski**
+
 * Status: zaakceptowane
 * Data: 2026-06-18
 * Decydenci: zespół Symulator Listonosza

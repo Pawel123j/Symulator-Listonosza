@@ -118,6 +118,8 @@ Kod wyjścia `0` = wszystkie asercje przeszły. Kontrakt objęty testami:
   `Playground.unity` i jest to ta sama scena, którą buduje `MobileBuild.BuildAndroid` (stała `ScenePath`);
   GUID w manifeście zgadza się z `.meta` sceny. `Bootstrap.unity` służy tylko do testu Etapu 0 w edytorze.
 
+Scenariusz 3-minutowego pokazu: [docs/demo.pl.md](docs/demo.pl.md).
+
 Ograniczenie: to nie zastępuje Play Mode ani testu na urządzeniu (brak renderowania, fizyki, dotyku).
 
 ## Decyzje architektoniczne
