@@ -101,7 +101,10 @@ Kod wyjścia `0` = wszystkie asercje przeszły. Kontrakt objęty testami:
   torby `maxItems`); dostarczona przesyłka nie wraca tego samego dnia;
 - poprawny punkt: jedno confetti + jeden dźwięk (`DeliveryFeedback`) nad komórką adresu przesyłki;
   błędny punkt: brak efektów i zdarzeń, torba i wynik bez zmian — jedyną informacją jest log w Console
-  (gracz na urządzeniu nie dostaje komunikatu).
+  (gracz na urządzeniu nie dostaje komunikatu);
+- kanały `EventChannelSO` (assety) przeżywają scenę: każdy słuchacz zapisuje się w `OnEnable` i wypisuje
+  w `OnDisable`, więc po ponownym wejściu do sceny liczba subskrypcji jest taka sama, a jedno zdarzenie
+  daje jedną reakcję.
 
 Ograniczenie: to nie zastępuje Play Mode ani testu na urządzeniu (brak renderowania, fizyki, dotyku).
 
