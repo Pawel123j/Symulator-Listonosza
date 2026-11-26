@@ -19,6 +19,7 @@
   <ItemGroup>
     <Compile Include="UnityStubs.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="BuildManifestCheck.cs" />
     <Compile Include="$(Scripts)/Core/*.cs" />
     <Compile Include="$(Scripts)/Data/*.cs" />
     <Compile Include="$(Scripts)/Grid/GridConfig.cs" />

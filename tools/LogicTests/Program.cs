@@ -45,6 +45,9 @@ internal static class Program
         Run("S1 Channels: scene loaded, unloaded, loaded again -> same listener count, one reaction per event", S1_SceneReentry);
         Run("S2 Channels: object disabled and re-enabled inside the scene -> no extra listener", S2_DisableEnable);
         Run("S3 Channels: three re-entries in a row -> count stays flat", S3_ManyReentries);
+        Run("M1 Build manifest (synthetic): single enabled scene = MobileBuild scene -> ok", M1_SyntheticConsistent);
+        Run("M2 Build manifest (synthetic): another scene first / disabled / stale guid -> reported", M2_SyntheticMismatch);
+        Run("M3 Build manifest (this repo): entry scene = MobileBuild.ScenePath, file and guid match", M3_RepoManifest);
 
         Console.WriteLine();
         Console.WriteLine(_failures == 0
@@ -539,6 +542,55 @@ internal static class Program
 
         Eq("census on each load", OneScene + " | " + OneScene + " | " + OneScene, string.Join(" | ", seen));
         Eq("after last unload", NoScene, ch.Census());
+    }
+
+    // ------------------------------------------------------------------ M: build entry scene
+
+    private const string SynthBuild = "private const string ScenePath = \"Assets/S/Main.unity\";";
+
+    private static string SynthManifest(params (int enabled, string path, string guid)[] scenes)
+    {
+        var sb = new System.Text.StringBuilder("EditorBuildSettings:\n  m_Scenes:\n");
+        foreach (var s in scenes) sb.Append($"  - enabled: {s.enabled}\n    path: {s.path}\n    guid: {s.guid}\n");
+        return sb.ToString();
+    }
+
+    private static string SynthFiles(string path) =>
+        path == "Assets/S/Main.unity" ? "scene" :
+        path == "Assets/S/Main.unity.meta" ? "fileFormatVersion: 2\nguid: aaaa\n" :
+        path == "Assets/S/Boot.unity" ? "scene" :
+        path == "Assets/S/Boot.unity.meta" ? "fileFormatVersion: 2\nguid: bbbb\n" : null;
+
+    private static void M1_SyntheticConsistent()
+    {
+        Eq("[Main]", "ok", BuildManifestCheck.Verdict(SynthManifest((1, "Assets/S/Main.unity", "aaaa")), SynthBuild, SynthFiles));
+        Eq("[Boot disabled, Main]", "ok", BuildManifestCheck.Verdict(
+            SynthManifest((0, "Assets/S/Boot.unity", "bbbb"), (1, "Assets/S/Main.unity", "aaaa")), SynthBuild, SynthFiles));
+    }
+
+    private static void M2_SyntheticMismatch()
+    {
+        Eq("[Boot, Main] -> player would start in Boot, MobileBuild in Main",
+            "entry mismatch: manifest=Assets/S/Boot.unity MobileBuild=Assets/S/Main.unity",
+            BuildManifestCheck.Verdict(SynthManifest((1, "Assets/S/Boot.unity", "bbbb"), (1, "Assets/S/Main.unity", "aaaa")), SynthBuild, SynthFiles));
+        Eq("[] (nothing enabled)", "manifest has no enabled scene",
+            BuildManifestCheck.Verdict(SynthManifest((0, "Assets/S/Main.unity", "aaaa")), SynthBuild, SynthFiles));
+        Eq("[Main] with stale guid", "guid mismatch: manifest=cccc meta=aaaa",
+            BuildManifestCheck.Verdict(SynthManifest((1, "Assets/S/Main.unity", "cccc")), SynthBuild, SynthFiles));
+        Eq("MobileBuild points to a missing scene", "scene file missing: Assets/S/Gone.unity",
+            BuildManifestCheck.Verdict(SynthManifest((1, "Assets/S/Gone.unity", "aaaa")),
+                "const string ScenePath = \"Assets/S/Gone.unity\";", SynthFiles));
+    }
+
+    private static void M3_RepoManifest()
+    {
+        string manifest = BuildManifestCheck.ReadRepo("ProjectSettings/EditorBuildSettings.asset");
+        string source = BuildManifestCheck.ReadRepo("Assets/_Project/Scripts/Editor/MobileBuild.cs");
+        Eq("files found", true, manifest != null && source != null);
+        Eq("entry scene", "Assets/_Project/Scenes/Playground.unity",
+            BuildManifestCheck.EntryScene(BuildManifestCheck.ParseManifest(manifest))?.Path);
+        Eq("MobileBuild.ScenePath", "Assets/_Project/Scenes/Playground.unity", BuildManifestCheck.MobileBuildScenePath(source));
+        Eq("verdict", "ok", BuildManifestCheck.Verdict(manifest, source, BuildManifestCheck.ReadRepo));
     }
 
     // ------------------------------------------------------------------ helpers
