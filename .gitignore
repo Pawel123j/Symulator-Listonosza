@@ -73,3 +73,7 @@ crashlytics-build.properties
 *.key
 
 # END UNITY GITHUB UPLOAD RULES
+
+# Headless logic tests (tools/LogicTests) — keep the project file, ignore build output
+!/tools/LogicTests/LogicTests.csproj
+/tools/LogicTests/bin/
