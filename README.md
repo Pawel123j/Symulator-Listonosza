@@ -1,123 +1,84 @@
-# Symulator Listonosza
+# Postman Simulator (Symulator Listonosza)
 
-Prototyp gry, w której gracz wciela się w listonosza dostarczającego przesyłki po mieście.
-Ruch swobodny (free movement), grid wyłącznie jako warstwa logiczna (mapowanie świata → komórki).
+[![Logic tests](https://github.com/Pawel123j/Symulator-Listonosza/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Pawel123j/Symulator-Listonosza/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Stack (techniczny)
+**English** · [Polski](README.pl.md)
 
-- **Unity 6 — `6000.3.14f1`**, URP 17.3.0 (wersja wykryta na maszynie; pierwotne założenie 2022.3 LTS
-  okazało się nietrafione i zostało zmienione — patrz [ADR-0004](docs/adr/0004-mobile-input-touch-i-follow-camera.md))
-- **Platforma docelowa: mobile (Android/iOS)** — sterowanie dotykowe, kamera podążająca
-- C#, Input System (new), legacy `Text` w HUD (do migracji na TMP)
-- Architektura: ScriptableObject-driven + manager pattern + event channels (SO) — bez sztywnych
-  referencji między systemami
-- Bez płatnych assetów — placeholdery (prymitywy / proste meshe)
+A mobile game prototype in Unity 6: you play a postman who picks up parcels at the post office and
+delivers them across town before the working day ends. Free movement in the world, with a grid used
+only as a logical layer (world position ↔ cell).
 
-## Struktura projektu
+## Features
 
-```
-Assets/
-  _Project/
-    Scripts/
-      Core/        // GameManager, event channels, serwisy        -> asmdef Listonosz.Core
-      Gameplay/    // ruch gracza, dostawy, interakcje             -> asmdef Listonosz.Gameplay
-      Data/        // ScriptableObjecty (przesyłki, adresy, configi)-> asmdef Listonosz.Data
-      Grid/        // logiczna warstwa gridu (world<->cell)         -> asmdef Listonosz.Grid
-      UI/          // HUD, lista zadań                              -> asmdef Listonosz.UI
-    Settings/      // URP assety, Input Actions
-    Prefabs/
-    Scenes/        // Bootstrap.unity (Etap 0), Playground.unity (scena gry, wejście buildu)
-docs/
-  adr/             // Architecture Decision Records (MADR)
-```
+- **Workday loop** as a state machine: briefing → work → summary (`DayStart → Working → DayEnd`),
+  with a timer, score by parcel priority, speed bonus, combo and a persistent best score.
+- **Deliveries**: pick-up point, delivery targets bound to address assets, a bag with an optional
+  capacity limit, failed parcels at the end of the day.
+- **Mobile controls**: touch joystick on the left half of the screen, tap to interact on the right
+  half, follow camera; keyboard and gamepad work in parallel.
+- **Feedback**: target beacon, confetti and a procedural sound on delivery, HUD with active parcels
+  and the direction to the nearest target.
 
-Namespacing: `Listonosz.<Warstwa>` (np. `Listonosz.Core`, `Listonosz.Gameplay`).
+## Tech stack
 
-### Zależności assembly (asmdef)
+- **Unity 6 `6000.3.14f1`**, URP 17.3.0, Input System 1.14.1, C#
+- Target platform: **Android / iOS**
+- Architecture: ScriptableObject-driven data + **event channels** (no hard references between
+  systems), manager pattern, assembly definitions per layer
+- No paid assets: primitives and simple meshes as placeholders
+
+## Architecture
 
 ```
-Listonosz.Core      (bazowa, brak zależności wewnętrznych)
-Listonosz.Data      -> Core
-Listonosz.Grid      -> Core, Data
-Listonosz.Gameplay  -> Core, Data, Grid
-Listonosz.UI        -> Core, Data
+Assets/_Project/
+  Scripts/
+    Core/      GameManager, event channels                     -> Listonosz.Core
+    Data/      ScriptableObjects: parcels, addresses, day DB   -> Listonosz.Data
+    Grid/      logical grid (world <-> cell)                   -> Listonosz.Grid
+    Gameplay/  player, deliveries, day loop, interactions      -> Listonosz.Gameplay
+    UI/        HUD, day screens, interaction prompt            -> Listonosz.UI
+    Editor/    scene builder, Android build
+  Scenes/      Playground.unity (game, build entry), Bootstrap.unity (stage 0)
+docs/adr/      Architecture Decision Records
+tools/LogicTests/  headless regression tests (.NET 8)
 ```
 
-Podział na asmdef wymusza kierunek zależności (czysta architektura) i skraca czas
-rekompilacji.
+Assembly dependencies enforce the direction of the architecture:
+`Data → Core`, `Grid → Core, Data`, `Gameplay → Core, Data, Grid`, `UI → Core, Data`.
+Design decisions are recorded in [docs/adr](docs/adr/README.md) (in Polish).
 
-## Konfiguracja środowiska (jednorazowo)
+## Tests without Unity
 
-Repozytorium zawiera kod, ADR-y, scenę oraz `ProjectSettings/ProjectVersion.txt` i
-`Packages/manifest.json` (pod Unity 6 `6000.3.14f1`). Pozostałe `ProjectSettings` i `Library`
-wygeneruje edytor przy pierwszym otwarciu.
+`tools/LogicTests` compiles the **real** gameplay scripts against a minimal stand-in of the Unity
+API (lifecycle, in-memory `PlayerPrefs`, simulated input, record-only audio/particles) and checks
+the day loop, deliveries, event-channel subscriptions and the build entry scene — 131 checks in
+about 5 seconds. It runs in CI on every push and pull request.
 
-1. **Unity Hub → Open** → wskaż ten folder. Hub otworzy go w `6000.3.14f1`; edytor pobierze pakiety
-   (URP, Input System) i wygeneruje `ProjectSettings`.
-2. Gdy edytor zapyta o **włączenie nowego backendu Input System** — potwierdź (restart edytora).
-   Bez tego sterowanie nie działa (choć kod i tak się kompiluje).
-3. *(URP/render)* jeśli scena renderuje się jako Built-in: utwórz *URP Asset (with Renderer)* i
-   przypisz w *Project Settings → Graphics* oraz w *Quality*.
+Requirements: .NET SDK 8 (`apt install dotnet-sdk-8.0` or `winget install Microsoft.DotNet.SDK.8`).
 
-### Build na mobile (skrót)
-- *File → Build Profiles/Settings* → przełącz platformę na **Android** (lub iOS).
-- *Project Settings → Player*: orientacja (np. Landscape), Company/Product Name, Min API.
-- Sterowanie dotykowe działa po włączeniu nowego backendu Input System (krok 2).
-- Test bez urządzenia: okno **Simulator** (Game view → Simulator) + dotyk myszą; równolegle
-  działa klawiatura/pad, bo wejścia się sumują.
+```bash
+dotnet run --project tools/LogicTests
+```
 
-## Jak przetestować Etap 0
+Expected: the last line is `PASSED: <n> checks` and the exit code is `0`. The full list of covered
+behaviour is in [README.pl.md](README.pl.md#testy-logiki-pętli-dnia-bez-unity); a 3-minute demo
+script is in [docs/demo.md](docs/demo.md).
 
-1. Otwórz scenę `Assets/_Project/Scenes/Bootstrap.unity`.
-2. Naciśnij **Play**.
-3. W *Console* powinien pojawić się log:
-   `[Listonosz] GameManager zainicjalizowany (Etap 0 — szkielet).`
+These tests do not replace Play Mode or a device test: there is no rendering, physics or real touch
+input.
 
-`GameManager` tworzy się automatycznie (`RuntimeInitializeOnLoadMethod`), więc log pojawi
-się niezależnie od zawartości sceny. Scena Bootstrap jest celowo „pusta” — jej zadaniem
-jest inicjalizacja systemów (kamera/rozgrywka dojdą w kolejnych etapach).
+## Running the game
 
-## Testy logiki pętli dnia (bez Unity)
+1. **Unity Hub → Open** this folder; it opens in `6000.3.14f1` and resolves the packages.
+2. Accept enabling the **new Input System backend** when asked (the editor restarts).
+3. Open `Assets/_Project/Scenes/Playground.unity` and press **Play**. To regenerate the scene and
+   its assets use the menu **Listonosz → Zbuduj scenę testową**.
+4. Without a phone: **Game view → Simulator** emulates touch with the mouse.
 
-`tools/LogicTests` kompiluje prawdziwe skrypty z `Assets/_Project/Scripts` (Core, Data, Grid,
-pętla dnia i dostawy) z atrapą API Unity (`UnityStubs.cs`: cykl życia, `PlayerPrefs` w pamięci,
-symulowane akcje wejścia).
+Android build: menu **Listonosz → Build APK (Android)** or batch mode, see
+[docs/android-build.md](docs/android-build.md). The APK is signed with the Unity debug key.
 
-### Najkrótsza droga od czystego checkoutu do pierwszego dowodu
+## License
 
-| Krok | Wymaga | Wejście | Oczekiwany wynik |
-|---|---|---|---|
-| 1. Podstawowy (bez Unity) | git, **.NET SDK 8.0.x** (np. `apt install dotnet-sdk-8.0`, `winget install Microsoft.DotNet.SDK.8`); żadnych pakietów NuGet, po instalacji SDK działa offline | `dotnet run --project tools/LogicTests` | pierwsza sekcja `== A1 …` z `[ok]`, na końcu `PASSED: <n> checks`, kod wyjścia `0` (~5 s) |
-| 2. Edytor | **Unity 6000.3.14f1** (`ProjectSettings/ProjectVersion.txt`), pakiety z `Packages/manifest.json` (m.in. Input System 1.14.1, URP 17.3.0), licencja Unity | scena `Bootstrap.unity` → Play | log `[Listonosz] GameManager zainicjalizowany (Etap 0 — szkielet).` |
-| 3. Build/urządzenie | krok 2 + moduł Android (SDK/NDK, licencje), telefon | `docs/android-build.md` | `Builds/Listonosz.apk` |
-
-Repozytorium nie ma workflow CI — krok 1 trzeba uruchomić lokalnie. Kroki 2–3 zależą od licencji,
-GUI edytora i sprzętu i nie dają się wykonać w kontenerze bez Unity.
-
-Kod wyjścia `0` = wszystkie asercje przeszły. Kontrakt objęty testami:
-- dwa starty tej samej fikstury dają ten sam stan początkowy (`DayStart`, wynik/licznik/combo 0,
-  pełny czas, pusta torba, jeden `GameManager`); **rekord (`BestScore`) celowo przetrwa** między startami;
-- z `DayEnd` jedno „Dalej” przechodzi do `DayStart` nowego dnia (bez pomijania briefingu, chyba że
-  `autoStartWork`), zeruje licznik/wynik/combo/czas i udostępnia ponownie te same przesyłki;
-- przesyłka jest powiązana z adresem przez **referencję do assetu `AddressPointSO`**, nie przez tekst:
-  podobne lub identyczne `DisplayName`/`AddressId` dwóch adresów nie powodują pomyłki dostawy;
-- `DeliveryDatabaseSO.Count` (cel dnia przy `dailyGoal = 0`) liczy unikalne, niepuste wpisy — pusta
-  pozycja listy ani powtórzona przesyłka nie blokują ukończenia dnia. Przesyłka bez adresu nadal jest
-  liczona, ale nie da się jej dostarczyć (na koniec dnia trafia do nieudanych);
-- powrót do punktu odbioru wydaje tylko przesyłki jeszcze nie dostarczone i nie niesione (do limitu
-  torby `maxItems`); dostarczona przesyłka nie wraca tego samego dnia;
-- poprawny punkt: jedno confetti + jeden dźwięk (`DeliveryFeedback`) nad komórką adresu przesyłki;
-  błędny punkt: brak efektów i zdarzeń, torba i wynik bez zmian — jedyną informacją jest log w Console
-  (gracz na urządzeniu nie dostaje komunikatu);
-- kanały `EventChannelSO` (assety) przeżywają scenę: każdy słuchacz zapisuje się w `OnEnable` i wypisuje
-  w `OnDisable`, więc po ponownym wejściu do sceny liczba subskrypcji jest taka sama, a jedno zdarzenie
-  daje jedną reakcję;
-- scena wejścia buildu: pierwsza włączona scena w `ProjectSettings/EditorBuildSettings.asset` to
-  `Playground.unity` i jest to ta sama scena, którą buduje `MobileBuild.BuildAndroid` (stała `ScenePath`);
-  GUID w manifeście zgadza się z `.meta` sceny. `Bootstrap.unity` służy tylko do testu Etapu 0 w edytorze.
-
-Ograniczenie: to nie zastępuje Play Mode ani testu na urządzeniu (brak renderowania, fizyki, dotyku).
-
-## Decyzje architektoniczne
-
-Patrz [docs/adr](docs/adr/README.md).
+[MIT](LICENSE)
