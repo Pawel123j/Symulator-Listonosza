@@ -24,5 +24,3 @@ Po zaakceptowaniu licencji (ścieżka do `Unity.exe` to domyślna lokalizacja Un
 ```powershell
 & "C:\Program Files\Unity\Hub\Editor\6000.3.14f1\Editor\Unity.exe" -batchmode -nographics -quit -accept-apiupdate -buildTarget Android -projectPath "<PROJEKT>" -executeMethod Listonosz.EditorTools.MobileBuild.BuildAndroid -logFile "<PROJEKT>\unity_apk.log"
 ```
-
-Albo popros Codexa: "zbuduj APK".
