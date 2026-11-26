@@ -26,7 +26,7 @@ Assets/
       UI/          // HUD, lista zadań                              -> asmdef Listonosz.UI
     Settings/      // URP assety, Input Actions
     Prefabs/
-    Scenes/        // Bootstrap.unity
+    Scenes/        // Bootstrap.unity (Etap 0), Playground.unity (scena gry, wejście buildu)
 docs/
   adr/             // Architecture Decision Records (MADR)
 ```
@@ -81,11 +81,18 @@ jest inicjalizacja systemów (kamera/rozgrywka dojdą w kolejnych etapach).
 
 `tools/LogicTests` kompiluje prawdziwe skrypty z `Assets/_Project/Scripts` (Core, Data, Grid,
 pętla dnia i dostawy) z atrapą API Unity (`UnityStubs.cs`: cykl życia, `PlayerPrefs` w pamięci,
-symulowane akcje wejścia). Wymaga .NET SDK 8:
+symulowane akcje wejścia).
 
-```
-dotnet run --project tools/LogicTests
-```
+### Najkrótsza droga od czystego checkoutu do pierwszego dowodu
+
+| Krok | Wymaga | Wejście | Oczekiwany wynik |
+|---|---|---|---|
+| 1. Podstawowy (bez Unity) | git, **.NET SDK 8.0.x** (np. `apt install dotnet-sdk-8.0`, `winget install Microsoft.DotNet.SDK.8`); żadnych pakietów NuGet, po instalacji SDK działa offline | `dotnet run --project tools/LogicTests` | pierwsza sekcja `== A1 …` z `[ok]`, na końcu `PASSED: <n> checks`, kod wyjścia `0` (~5 s) |
+| 2. Edytor | **Unity 6000.3.14f1** (`ProjectSettings/ProjectVersion.txt`), pakiety z `Packages/manifest.json` (m.in. Input System 1.14.1, URP 17.3.0), licencja Unity | scena `Bootstrap.unity` → Play | log `[Listonosz] GameManager zainicjalizowany (Etap 0 — szkielet).` |
+| 3. Build/urządzenie | krok 2 + moduł Android (SDK/NDK, licencje), telefon | `docs/android-build.md` | `Builds/Listonosz.apk` |
+
+Repozytorium nie ma workflow CI — krok 1 trzeba uruchomić lokalnie. Kroki 2–3 zależą od licencji,
+GUI edytora i sprzętu i nie dają się wykonać w kontenerze bez Unity.
 
 Kod wyjścia `0` = wszystkie asercje przeszły. Kontrakt objęty testami:
 - dwa starty tej samej fikstury dają ten sam stan początkowy (`DayStart`, wynik/licznik/combo 0,
